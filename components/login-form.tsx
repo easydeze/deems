@@ -14,12 +14,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useRef } from "react";
+import HCaptcha from "@hcaptcha/react-hcaptcha";
 
 export function LoginForm({
   className,
   ...props
 }: React.ComponentPropsWithoutRef<"div">) {
+  const captchaRef = useRef<HCaptcha>(null);
+  const [token, setToken] = useState<string>("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -36,6 +39,9 @@ export function LoginForm({
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
+        options: {
+          captchaToken: token,
+        },
       });
       if (error) throw error;
       // Update this route to redirect to an authenticated route. The user already has an active session.
@@ -43,6 +49,7 @@ export function LoginForm({
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : "An error occurred");
     } finally {
+      captchaRef.current?.resetCaptcha();
       setIsLoading(false);
     }
   };
@@ -88,6 +95,11 @@ export function LoginForm({
                   onChange={(e) => setPassword(e.target.value)}
                 />
               </div>
+              <HCaptcha
+                sitekey="128a0e68-11ec-452e-b06a-dee276d2b164"
+                onVerify={setToken}
+                ref={captchaRef}
+              />
               {error && <p className="text-sm text-red-500">{error}</p>}
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? "Logging in..." : "Login"}
